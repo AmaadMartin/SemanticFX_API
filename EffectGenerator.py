@@ -18,9 +18,13 @@ class GPT:
                 3. juce::dsp::DelayLine<float, juce::dsp::DelayLineInterpolationTypes::Linear> delayLine (A juce dsp delay line with parameters that could be set with setDelayLineParameters) \
                 4. juce::dsp::Phaser<float> phaser (A juce dsp phaser with parameters that could be set with setPhaserParameters) \
                 5. juce::dsp::Chorus<float> chorus (A juce dsp chorus with parameters that could be set with setChorusParameters) \
-                In addition you have the abiity to set the order of the effects with the setOrder function. \
+                In addition you have the ability to set the order of the effects with the setOrder function. \
                 And you could set the number of effects with the setNumEffects function which will cause only the first [NumEffects] effects to be used from the order. \
-                You should create the effect with the given parameters. You shouldn't expect any response from the user. Once you set all of the parameters give a description of what was done. Make sure to think step by step to get the closest to the desired effect.",
+                You should create the effect with the given parameters. You shouldn't expect any response from the user. \
+                Make sure to think step by step to get the closest to the desired effect. \
+                Start by describing the effect in greater detail to get fully understand it. \
+                In addition, describe the thought process before each step. \
+                Once you set all of the parameters give a description of what was done. ",
             tools=[{"type": "code_interpreter"}, {
             "type": "function",
                 "function": {
@@ -66,13 +70,13 @@ class GPT:
                         "type": "object",
                         "properties": {
                             "threshold": { "type": "number",
-                                            "description": "The threshold of the compressor"},
+                                            "description": "the threshold in dB of the compressor"},
                             "ratio": { "type": "number",
-                                            "description": "The ratio of the compressor"},
+                                            "description": "the ratio of the compressor (must be higher or equal to 1)"},
                             "attack": { "type": "number",
-                                            "description": "The attack of the compressor"},
+                                            "description": "the attack time in milliseconds of the compressor"},
                             "release": { "type": "number",
-                                            "description": "The release of the compressor"},
+                                            "description": "the release time in milliseconds of the compressor"},
                         },
                         "required": ["threshold", "ratio", "attack", "release"]
                     }
@@ -86,11 +90,11 @@ class GPT:
                         "type": "object",
                         "properties": {
                             "delay": { "type": "number",
-                                            "description": "The delay of the delay line"},
-                            "setMaximumDelayInSamples": { "type": "number",
-                                            "description": "The maximum delay of the delay line"},
+                                            "description": "the delay in samples"},
+                            "maximumDelayInSamples": { "type": "number",
+                                            "description": "maximum delay in samples"},
                         },
-                        "required": ["delay", "setMaximumDelayInSamples"]
+                        "required": ["delay", "maximumDelayInSamples"]
                     }
                 }
             }, {
@@ -102,15 +106,15 @@ class GPT:
                         "type": "object",
                         "properties": {
                             "rate": { "type": "number",
-                                            "description": "The rate of the phaser"},
+                                            "description": "the rate (in Hz) of the LFO modulating the phaser all-pass filters"},
                             "depth": { "type": "number",    
-                                            "description": "The depth of the phaser"},
+                                            "description": "the volume (between 0 and 1) of the LFO modulating the phaser all-pass filters"},
                             "centreFrequency": { "type": "number",
-                                            "description": "The centre frequency of the phaser"},
+                                            "description": "the centre frequency (in Hz) of the phaser all-pass filters modulation"},
                             "feedback": { "type": "number",
-                                            "description": "The feedback of the phaser"},
+                                            "description": "the feedback volume (between -1 and 1) of the phaser"},
                             "mix": { "type": "number",
-                                            "description": "The mix of the phaser"},
+                                            "description": "the amount of dry and wet signal in the output of the phaser (between 0 for full dry and 1 for full wet)"},
                         },
                         "required": ["rate", "depth", "centerFrequency", "feedback", "mix"]
                     }
@@ -124,17 +128,17 @@ class GPT:
                         "type": "object",
                         "properties": {
                             "rate": { "type": "number",
-                                            "description": "The rate of the phaser"},
+                                            "description": "the rate (in Hz) of the LFO modulating the chorus delay line"},
                             "depth": { "type": "number",    
-                                            "description": "The depth of the phaser"},
-                            "centreFrequency": { "type": "number",
-                                            "description": "The centre frequency of the phaser"},
+                                            "description": "the volume of the LFO modulating the chorus delay line (between 0 and 1)"},
+                            "centreDelay": { "type": "number",
+                                            "description": "the centre delay in milliseconds of the chorus delay line modulation"},
                             "feedback": { "type": "number",
-                                            "description": "The feedback of the phaser"},
+                                            "description": "the feedback volume (between -1 and 1) of the chorus delay line"},
                             "mix": { "type": "number",
-                                            "description": "The mix of the phaser"},
+                                            "description": "the amount of dry and wet signal in the output of the chorus (between 0 for full dry and 1 for full wet)"},
                         },
-                        "required": ["rate", "depth", "centerFrequency", "feedback", "mix"]
+                        "required": ["rate", "depth", "centreDelay", "feedback", "mix"]
                     }
                 }
             }, {
@@ -175,7 +179,8 @@ class GPT:
             "reverb": {
                 "roomSize": 0,
                 "damping": 0,
-                "wetLevel": 0
+                "wetLevel": 0,
+                "width": 0
             },
             "compressor": {
                 "threshold": 0,
@@ -185,20 +190,21 @@ class GPT:
             },
             "delayLine": {
                 "delay": 0,
-                "feedback": 0,
-                "wetLevel": 0
+                "maximumDelayInSamples": 0,
             },
             "phaser": {
-                "frequency": 0,
+                "rate": 0,
                 "depth": 0,
+                "centerFrequency": 0,
                 "feedback": 0,
-                "wetLevel": 0
+                "mix": 0
             },
             "chorus": {
-                "frequency": 0,
+                "rate": 0,
                 "depth": 0,
+                "centreDelay": 0,
                 "feedback": 0,
-                "wetLevel": 0
+                "mix": 0
             },
             "order": [0, 1, 2, 3, 4, 5],
             "numEffects": 6
