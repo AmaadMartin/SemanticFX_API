@@ -18,8 +18,7 @@ class GPT:
                 3. juce::dsp::DelayLine<float, juce::dsp::DelayLineInterpolationTypes::Linear> delayLine (A juce dsp delay line with parameters that could be set with setDelayLineParameters) \
                 4. juce::dsp::Phaser<float> phaser (A juce dsp phaser with parameters that could be set with setPhaserParameters) \
                 5. juce::dsp::Chorus<float> chorus (A juce dsp chorus with parameters that could be set with setChorusParameters) \
-                In addition you have the ability to set the order of the effects with the setOrder function. \
-                And you could set the number of effects with the setNumEffects function which will cause only the first [NumEffects] effects to be used from the order. \
+                The order of effects is the order you set them in.\
                 You should create the effect with the given parameters. You shouldn't expect any response from the user. \
                 Make sure to think step by step to get the closest to the desired effect. \
                 Start by describing the effect in greater detail to get fully understand it. \
@@ -58,7 +57,7 @@ class GPT:
                             "width": { "type": "number",
                                             "description": "The width of the reverb"},
                         },
-                        "required": ["roomSize", "damping", "wetLevel", "dryLevel"]
+                        "required": ["roomSize", "damping", "wetLevel", "width"]
                     }
                 }
             }, {
@@ -141,35 +140,6 @@ class GPT:
                         "required": ["rate", "depth", "centreDelay", "feedback", "mix"]
                     }
                 }
-            }, {
-            "type": "function",
-                "function": {
-                    "name": "setOrder",
-                    "description": "Sets the order of the effects",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "order": {
-                                "type": "array",
-                                "items": {
-                                    "type": "integer"
-                                }}
-                        }
-                    }
-
-                }
-            }, {
-            "type": "function",
-                "function": {
-                    "name": "setNumEffects",
-                    "description": "Sets the number of effects",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "numEffects": {"type": "integer"}
-                        }
-                    }
-                }
             }],
             model="gpt-4"
         )
@@ -207,8 +177,10 @@ class GPT:
                 "mix": 0
             },
             "order": [0, 1, 2, 3, 4, 5],
-            "numEffects": 6
+            "numEffects": 0
         }
+        self.numEffects = 0
+        self.orderDict = {}
 
     def engineerPrompt(self, query):
         thread = self.client.beta.threads.create()
@@ -242,75 +214,121 @@ class GPT:
 
                 for toolCall in toolCalls:
                     if toolCall.function.name == "addEQBand":
-                        args = json.loads(toolCall.function.arguments)
-                        print(args)
-                        self.parameters["eqEffect"].append(args)
-                        toolOutputs.append({
-                            "tool_call_id": toolCall.id,
-                            "output": "success"
-                        })
+                        if toolCall.function.arguments:
+                            if 0 not in self.orderDict:
+                                self.orderDict[0] = self.numEffects
+                                self.numEffects += 1
+                            args = json.loads(toolCall.function.arguments)
+                            print(args)
+                            self.parameters["eqEffect"].append(args)
+                            toolOutputs.append({
+                                "tool_call_id": toolCall.id,
+                                "output": "success"
+                            })
+                        else:
+                            toolOutputs.append({
+                                "tool_call_id": toolCall.id,
+                                "output": "no arguments provided"
+                            })
                     elif toolCall.function.name == "setReverbParameters":
-                        args = json.loads(toolCall.function.arguments)
-                        print(args)
-                        self.parameters["reverb"] = args
-                        toolOutputs.append({
-                            "tool_call_id": toolCall.id,
-                            "output": "success"
-                        })
+                        if toolCall.function.arguments:
+                            self.orderDict[1] = self.numEffects
+                            self.numEffects += 1
+                            args = json.loads(toolCall.function.arguments)
+                            print(args)
+                            self.parameters["reverb"] = args
+                            toolOutputs.append({
+                                "tool_call_id": toolCall.id,
+                                "output": "success"
+                            })
+                        else:
+                            toolOutputs.append({
+                                "tool_call_id": toolCall.id,
+                                "output": "no arguments provided"
+                            })
                     elif toolCall.function.name == "setCompressorParameters":
-                        args = json.loads(toolCall.function.arguments)
-                        print(args)
-                        self.parameters["compressor"] = args
-                        toolOutputs.append({
-                            "tool_call_id": toolCall.id,
-                            "output": "success"
-                        })
+                        if toolCall.function.arguments:
+                            self.orderDict[2] = self.numEffects
+                            self.numEffects += 1
+                            args = json.loads(toolCall.function.arguments)
+                            print(args)
+                            self.parameters["compressor"] = args
+                            toolOutputs.append({
+                                "tool_call_id": toolCall.id,
+                                "output": "success"
+                            })
+                        else:
+                            toolOutputs.append({
+                                "tool_call_id": toolCall.id,
+                                "output": "no arguments provided"
+                            })
                     elif toolCall.function.name == "setDelayLineParameters":
-                        args = json.loads(toolCall.function.arguments)
-                        print(args)
-                        self.parameters["delayLine"] = args
-                        toolOutputs.append({
-                            "tool_call_id": toolCall.id,
-                            "output": "success"
-                        })
+                        if toolCall.function.arguments:
+                            self.orderDict[3] = self.numEffects
+                            self.numEffects += 1
+                            args = json.loads(toolCall.function.arguments)
+                            print(args)
+                            self.parameters["delayLine"] = args
+                            toolOutputs.append({
+                                "tool_call_id": toolCall.id,
+                                "output": "success"
+                            })
+                        else:
+                            toolOutputs.append({
+                                "tool_call_id": toolCall.id,
+                                "output": "no arguments provided"
+                            })
                     elif toolCall.function.name == "setPhaserParameters":
-                        args = json.loads(toolCall.function.arguments)
-                        print(args)
-                        self.parameters["phaser"] = args
-                        toolOutputs.append({
-                            "tool_call_id": toolCall.id,
-                            "output": "success"
-                        })
+                        if toolCall.function.arguments:
+                            self.orderDict[4] = self.numEffects
+                            self.numEffects += 1
+                            args = json.loads(toolCall.function.arguments)
+                            print(args)
+                            self.parameters["phaser"] = args
+                            toolOutputs.append({
+                                "tool_call_id": toolCall.id,
+                                "output": "success"
+                            })
+                        else:
+                            toolOutputs.append({
+                                "tool_call_id": toolCall.id,
+                                "output": "no arguments provided"
+                            })
                     elif toolCall.function.name == "setChorusParameters":
-                        args = json.loads(toolCall.function.arguments)
-                        print(args)
-                        self.parameters["chorus"] = args
-                        toolOutputs.append({
-                            "tool_call_id": toolCall.id,
-                            "output": "success"
-                        })
-                    elif toolCall.function.name == "setOrder":
-                        args = json.loads(toolCall.function.arguments)
-                        print(args)
-                        self.parameters["order"] = args["order"]
-                        toolOutputs.append({
-                            "tool_call_id": toolCall.id,
-                            "output": "success"
-                        })
-                    elif toolCall.function.name == "setNumEffects":
-                        args = json.loads(toolCall.function.arguments)
-                        print(args)
-                        self.parameters["numEffects"] = args["numEffects"]
-                        toolOutputs.append({
-                            "tool_call_id": toolCall.id,
-                            "output": "success"
-                        })
+                        if toolCall.function.arguments:
+                            self.orderDict[5] = self.numEffects
+                            self.numEffects += 1
+                            args = json.loads(toolCall.function.arguments)
+                            print(args)
+                            self.parameters["chorus"] = args
+                            toolOutputs.append({
+                                "tool_call_id": toolCall.id,
+                                "output": "success"
+                            })
+                        else:
+                            toolOutputs.append({
+                                "tool_call_id": toolCall.id,
+                                "output": "no arguments provided"
+                            })
 
                 run = self.client.beta.threads.runs.submit_tool_outputs(
                     thread_id= threadId,
                     run_id= run.id,
                     tool_outputs= toolOutputs
                 )
+
+        print(self.orderDict)
+
+        newOrder = [0] * 6
+        print(newOrder)
+        for i in range(6):
+            if i in self.orderDict:
+                newOrder[self.orderDict[i]] = i
+
+        self.parameters["order"] = newOrder
+        self.parameters["numEffects"] = self.numEffects
+        self.numEffects = 0
+        self.orderDict = {}
 
         print(self.client.beta.threads.messages.list(threadId))
         self.client.beta.threads.delete(threadId)
