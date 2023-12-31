@@ -10,41 +10,66 @@ class GPT:
         self.client = OpenAI()
         self.PromptEngineer = self.client.beta.assistants.create(
             name="Effect Generator",
-            instructions="You are the Effect Parameter Finder. Given a description of a vst effect you are tasked with creating it. \
-            You have 6 low level effects: \
-                0. EQEffect eqEffect (A data structure holds a list of eq peaks filters that could be added to with the addEQBand function) \
-                1. juce::dsp::Reverb reverb (A juce dsp reverb with parameters that could be set with setReverbParameters) \
-                2. juce::dsp::Compressor<float> compressor (A juce dsp compressor with parameters that could be set with setCompressorParameters) \
-                3. juce::dsp::DelayLine<float, juce::dsp::DelayLineInterpolationTypes::Linear> delayLine (A juce dsp delay line with parameters that could be set with setDelayLineParameters) \
-                4. juce::dsp::Phaser<float> phaser (A juce dsp phaser with parameters that could be set with setPhaserParameters) \
-                5. juce::dsp::Chorus<float> chorus (A juce dsp chorus with parameters that could be set with setChorusParameters) \
-                The order of effects is the order you set them in.\
-                You should create the effect with the given parameters. You shouldn't expect any response from the user. \
-                Make sure to think step by step to get the closest to the desired effect. \
-                Start by describing the effect in greater detail to get fully understand it. \
-                In addition, describe the thought process before each step. \
-                Once you set all of the parameters give a description of what was done. ",
+            instructions="Given a description of a vst effect you are tasked with creating it by combining several low level effects out of the following:                 - filter                 - reverb                 - compressor                -delayLine                 - phaser                 - chorus                 You have functions to add each of these effects.                 The order of effects is dependent on the order you add them in. You don't have to use every effect and you could use effects multiple times. Your encouraged to make unique and high quality effects. You shouldn't expect any response from the user. ",
             tools=[{"type": "code_interpreter"}, {
             "type": "function",
                 "function": {
-                    "name": "addEQBand",
-                    "description": "Adds an EQ peak according to the given frequency and gain",
+                    "name": "addPeakFilter",
+                    "description": "Adds a filter with coefficients for a peak filter centred around a given frequency, with a variable Q and gain. The gain is a scale factor that the centre frequencies are multiplied by, so values greater than 1.0 will boost the centre frequencies, values less than 1.0 will attenuate them.",
                     "parameters": {
                         "type": "object",
                         "properties": {
-                            "frequency": { "type": "number",
-                                            "description": "The frequency of the peak filter"},
-                            "gain": { "type": "number",
-                                            "description": "The gain of the peak filter"},
+                            "centreFrequency": { "type": "number",
+                                            "description": "The centreFrequency of the filter"},
+                            "gainFactor": { "type": "number",
+                                            "description": "The gain of the filter"},
+                            "Q": { "type": "number",
+                                            "description": "The Q of the filter"},
                         },
-                        "required": ["frequency", "gain"]
+                        "required": ["frequency", "gain", "Q"]
                     }
                 }
             }, {
             "type": "function",
                 "function": {
-                    "name": "setReverbParameters",
-                    "description": "Sets the parameters of the reverb",
+                    "name": "addLowShelfFilter",
+                    "description": "Adds a filter with coefficients for a low-pass shelf filter with variable Q and gain. The gain is a scale factor that the low frequencies are multiplied by, so values greater than 1.0 will boost the low frequencies, values less than 1.0 will attenuate them",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "cutOffFrequency": { "type": "number",
+                                            "description": "The cutOffFrequency of the filter"},
+                            "gainFactor": { "type": "number",
+                                            "description": "The gain of the filter"},
+                            "Q": { "type": "number",
+                                            "description": "The Q of the filter"},
+                        },
+                        "required": ["frequency", "gain", "Q"]
+                    }
+                }
+            }, {
+            "type": "function",
+                "function": {
+                    "name": "addHighShelfFilter",
+                    "description": "Adds a filter with coefficients for a high-pass shelf filter with variable Q and gain. The gain is a scale factor that the high frequencies are multiplied by, so values greater than 1.0 will boost the high frequencies, values less than 1.0 will attenuate them.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "cutOffFrequency": { "type": "number",
+                                            "description": "The cutOffFrequency of the filter"},
+                            "gainFactor": { "type": "number",
+                                            "description": "The gain of the filter"},
+                            "Q": { "type": "number",
+                                            "description": "The Q of the filter"},
+                        },
+                        "required": ["frequency", "gain", "Q"]
+                    }
+                }
+            }, {
+            "type": "function",
+                "function": {
+                    "name": "addReverb",
+                    "description": "Adds a reverb with the given parameters",
                     "parameters": {
                         "type": "object",
                         "properties": {
@@ -63,8 +88,8 @@ class GPT:
             }, {
             "type": "function",
                 "function": {
-                    "name": "setCompressorParameters",
-                    "description": "Sets the parameters of the compressor",
+                    "name": "addCompressor",
+                    "description": "Adds a compressor with the given parameters",
                     "parameters": {
                         "type": "object",
                         "properties": {
@@ -83,8 +108,8 @@ class GPT:
             }, {
             "type": "function",
                 "function": {
-                    "name": "setDelayLineParameters",
-                    "description": "Sets the parameters of the delay line",
+                    "name": "addDelayLine",
+                    "description": "Adds a delay line with the given parameters",
                     "parameters": {
                         "type": "object",
                         "properties": {
@@ -99,8 +124,8 @@ class GPT:
             }, {
             "type": "function",
                 "function": {
-                    "name": "setPhaserParameters",
-                    "description": "Sets the parameters of the phaser",
+                    "name": "addPhaser",
+                    "description": "Adds a phaser with the given parameters",
                     "parameters": {
                         "type": "object",
                         "properties": {
@@ -121,8 +146,8 @@ class GPT:
             }, {
             "type": "function",
                 "function": {
-                    "name": "setChorusParameters",
-                    "description": "Sets the parameters of the chorus",
+                    "name": "addChorus",
+                    "description": "Adds a chorus with the given parameters",
                     "parameters": {
                         "type": "object",
                         "properties": {
@@ -145,42 +170,8 @@ class GPT:
         )
         self.thread = self.client.beta.threads.create()
         self.parameters = {
-            "eqEffect": [],
-            "reverb": {
-                "roomSize": 0,
-                "damping": 0,
-                "wetLevel": 0,
-                "width": 0
-            },
-            "compressor": {
-                "threshold": 0,
-                "ratio": 0,
-                "attack": 0,
-                "release": 0
-            },
-            "delayLine": {
-                "delay": 0,
-                "maximumDelayInSamples": 0,
-            },
-            "phaser": {
-                "rate": 0,
-                "depth": 0,
-                "centerFrequency": 0,
-                "feedback": 0,
-                "mix": 0
-            },
-            "chorus": {
-                "rate": 0,
-                "depth": 0,
-                "centreDelay": 0,
-                "feedback": 0,
-                "mix": 0
-            },
-            "order": [0, 1, 2, 3, 4, 5],
-            "numEffects": 0
+            "effects": []
         }
-        self.numEffects = 0
-        self.orderDict = {}
 
     def engineerPrompt(self, query):
         thread = self.client.beta.threads.create()
@@ -213,103 +204,169 @@ class GPT:
                 print(toolCalls)
 
                 for toolCall in toolCalls:
-                    if toolCall.function.name == "addEQBand":
-                        if toolCall.function.arguments:
-                            if 0 not in self.orderDict:
-                                self.orderDict[0] = self.numEffects
-                                self.numEffects += 1
-                            args = json.loads(toolCall.function.arguments)
-                            print(args)
-                            self.parameters["eqEffect"].append(args)
-                            toolOutputs.append({
-                                "tool_call_id": toolCall.id,
-                                "output": "success"
-                            })
-                        else:
-                            toolOutputs.append({
-                                "tool_call_id": toolCall.id,
-                                "output": "no arguments provided"
-                            })
-                    elif toolCall.function.name == "setReverbParameters":
-                        if toolCall.function.arguments:
-                            self.orderDict[1] = self.numEffects
-                            self.numEffects += 1
-                            args = json.loads(toolCall.function.arguments)
-                            print(args)
-                            self.parameters["reverb"] = args
-                            toolOutputs.append({
-                                "tool_call_id": toolCall.id,
-                                "output": "success"
-                            })
-                        else:
-                            toolOutputs.append({
-                                "tool_call_id": toolCall.id,
-                                "output": "no arguments provided"
-                            })
-                    elif toolCall.function.name == "setCompressorParameters":
-                        if toolCall.function.arguments:
-                            self.orderDict[2] = self.numEffects
-                            self.numEffects += 1
-                            args = json.loads(toolCall.function.arguments)
-                            print(args)
-                            self.parameters["compressor"] = args
-                            toolOutputs.append({
-                                "tool_call_id": toolCall.id,
-                                "output": "success"
-                            })
-                        else:
-                            toolOutputs.append({
-                                "tool_call_id": toolCall.id,
-                                "output": "no arguments provided"
-                            })
-                    elif toolCall.function.name == "setDelayLineParameters":
-                        if toolCall.function.arguments:
-                            self.orderDict[3] = self.numEffects
-                            self.numEffects += 1
-                            args = json.loads(toolCall.function.arguments)
-                            print(args)
-                            self.parameters["delayLine"] = args
-                            toolOutputs.append({
-                                "tool_call_id": toolCall.id,
-                                "output": "success"
-                            })
-                        else:
-                            toolOutputs.append({
-                                "tool_call_id": toolCall.id,
-                                "output": "no arguments provided"
-                            })
-                    elif toolCall.function.name == "setPhaserParameters":
-                        if toolCall.function.arguments:
-                            self.orderDict[4] = self.numEffects
-                            self.numEffects += 1
-                            args = json.loads(toolCall.function.arguments)
-                            print(args)
-                            self.parameters["phaser"] = args
-                            toolOutputs.append({
-                                "tool_call_id": toolCall.id,
-                                "output": "success"
-                            })
-                        else:
-                            toolOutputs.append({
-                                "tool_call_id": toolCall.id,
-                                "output": "no arguments provided"
-                            })
-                    elif toolCall.function.name == "setChorusParameters":
-                        if toolCall.function.arguments:
-                            self.orderDict[5] = self.numEffects
-                            self.numEffects += 1
-                            args = json.loads(toolCall.function.arguments)
-                            print(args)
-                            self.parameters["chorus"] = args
-                            toolOutputs.append({
-                                "tool_call_id": toolCall.id,
-                                "output": "success"
-                            })
-                        else:
-                            toolOutputs.append({
-                                "tool_call_id": toolCall.id,
-                                "output": "no arguments provided"
-                            })
+                    try:
+                        if toolCall.function.name == "addPeakFilter":
+                            if toolCall.function.arguments:
+                                args = json.loads(toolCall.function.arguments)
+                                print(args)
+                                self.parameters["effects"].append({
+                                    "type": "peakFilter",
+                                    "centreFrequency": args["centreFrequency"],
+                                    "gainFactor": args["gainFactor"],
+                                    "Q": args["Q"]
+                                })
+                                toolOutputs.append({
+                                    "tool_call_id": toolCall.id,
+                                    "output": "success"
+                                })
+                            else:
+                                toolOutputs.append({
+                                    "tool_call_id": toolCall.id,
+                                    "output": "no arguments provided"
+                                })
+                        elif toolCall.function.name == "addLowShelfFilter":
+                            if toolCall.function.arguments:
+                                args = json.loads(toolCall.function.arguments)
+                                print(args)
+                                self.parameters["effects"].append({
+                                    "type": "lowShelfFilter",
+                                    "cutOffFrequency": args["cutOffFrequency"],
+                                    "gainFactor": args["gainFactor"],
+                                    "Q": args["Q"]
+                                })
+                                toolOutputs.append({
+                                    "tool_call_id": toolCall.id,
+                                    "output": "success"
+                                })
+                            else:
+                                toolOutputs.append({
+                                    "tool_call_id": toolCall.id,
+                                    "output": "no arguments provided"
+                                })
+                        elif toolCall.function.name == "addHighShelfFilter":
+                            if toolCall.function.arguments:
+                                args = json.loads(toolCall.function.arguments)
+                                print(args)
+                                self.parameters["effects"].append({
+                                    "type": "highShelfFilter",
+                                    "cutOffFrequency": args["cutOffFrequency"],
+                                    "gainFactor": args["gainFactor"],
+                                    "Q": args["Q"]
+                                })
+                                toolOutputs.append({
+                                    "tool_call_id": toolCall.id,
+                                    "output": "success"
+                                })
+                            else:
+                                toolOutputs.append({
+                                    "tool_call_id": toolCall.id,
+                                    "output": "no arguments provided"
+                                })
+                        elif toolCall.function.name == "addReverb":
+                            if toolCall.function.arguments:
+                                args = json.loads(toolCall.function.arguments)
+                                print(args)
+                                self.parameters["effects"].append({
+                                    "type": "reverb",
+                                    "roomSize": args["roomSize"],
+                                    "damping": args["damping"],
+                                    "wetLevel": args["wetLevel"],
+                                    "width": args["width"]
+                                })
+                                toolOutputs.append({
+                                    "tool_call_id": toolCall.id,
+                                    "output": "success"
+                                })
+                            else:
+                                toolOutputs.append({
+                                    "tool_call_id": toolCall.id,
+                                    "output": "no arguments provided"
+                                })
+                        elif toolCall.function.name == "addCompressor":
+                            if toolCall.function.arguments:
+                                args = json.loads(toolCall.function.arguments)
+                                print(args)
+                                self.parameters["effects"].append({
+                                    "type": "compressor",
+                                    "threshold": args["threshold"],
+                                    "ratio": args["ratio"],
+                                    "attack": args["attack"],
+                                    "release": args["release"]
+                                })
+                                toolOutputs.append({
+                                    "tool_call_id": toolCall.id,
+                                    "output": "success"
+                                })
+                            else:
+                                toolOutputs.append({
+                                    "tool_call_id": toolCall.id,
+                                    "output": "no arguments provided"
+                                })
+                        elif toolCall.function.name == "addDelayLine":
+                            if toolCall.function.arguments:
+                                args = json.loads(toolCall.function.arguments)
+                                print(args)
+                                self.parameters["effects"].append({
+                                    "type": "delayLine",
+                                    "delay": args["delay"],
+                                    "maximumDelayInSamples": args["maximumDelayInSamples"]
+                                })
+                                toolOutputs.append({
+                                    "tool_call_id": toolCall.id,
+                                    "output": "success"
+                                })
+                            else:
+                                toolOutputs.append({
+                                    "tool_call_id": toolCall.id,
+                                    "output": "no arguments provided"
+                                })
+                        elif toolCall.function.name == "addPhaser":
+                            if toolCall.function.arguments:
+                                args = json.loads(toolCall.function.arguments)
+                                print(args)
+                                self.parameters["effects"].append({
+                                    "type": "phaser",
+                                    "rate": args["rate"],
+                                    "depth": args["depth"],
+                                    "centreFrequency": args["centreFrequency"],
+                                    "feedback": args["feedback"],
+                                    "mix": args["mix"]
+                                })
+                                toolOutputs.append({
+                                    "tool_call_id": toolCall.id,
+                                    "output": "success"
+                                })
+                            else:
+                                toolOutputs.append({
+                                    "tool_call_id": toolCall.id,
+                                    "output": "no arguments provided"
+                                })
+                        elif toolCall.function.name == "addChorus":
+                            if toolCall.function.arguments:
+                                args = json.loads(toolCall.function.arguments)
+                                print(args)
+                                self.parameters["effects"].append({
+                                    "type": "chorus",
+                                    "rate": args["rate"],
+                                    "depth": args["depth"],
+                                    "centreDelay": args["centreDelay"],
+                                    "feedback": args["feedback"],
+                                    "mix": args["mix"]
+                                })
+                                toolOutputs.append({
+                                    "tool_call_id": toolCall.id,
+                                    "output": "success"
+                                })
+                            else:
+                                toolOutputs.append({
+                                    "tool_call_id": toolCall.id,
+                                    "output": "no arguments provided"
+                                })
+                    except Exception as e:
+                        toolOutputs.append({
+                            "tool_call_id": toolCall.id,
+                            "output": str(e)
+                        })
 
                 run = self.client.beta.threads.runs.submit_tool_outputs(
                     thread_id= threadId,
@@ -317,22 +374,13 @@ class GPT:
                     tool_outputs= toolOutputs
                 )
 
-        print(self.orderDict)
-
-        newOrder = [0] * 6
-        print(newOrder)
-        for i in range(6):
-            if i in self.orderDict:
-                newOrder[self.orderDict[i]] = i
-
-        self.parameters["order"] = newOrder
-        self.parameters["numEffects"] = self.numEffects
-        self.numEffects = 0
-        self.orderDict = {}
-
         print(self.client.beta.threads.messages.list(threadId))
         self.client.beta.threads.delete(threadId)
     
+    def reset(self):
+        self.parameters = {
+            "effects": []
+        }
 
 
 
