@@ -20,13 +20,12 @@ You will have functions to tweak specific parameters pertaining to each effect ,
 You don't have to use every effect and could use multiple effects multiple times. You are encouraged to make high quality effects. It is your decision on how many and which effects to apply, and the parameters you choose.
 
 Here are some things to keep in mind.
-- Reverb sounds much better when an EQ is applied before. Usually, when reverb is needed, we will create a bus for the stem, that will be the stem’s designated ‘Reverb Bus.’ On the Reverb Bus, apply EQ, then add Reverb. This is because otherwise, it elongates frequencies that weren't cut off. Usually, a good baseline for EQ before reverb is to put a high pass filter on 500hz to make it sound thin/bright, and put a low pass filter on 8khz to make it sound dark/gloomy. 
-- The same follows for most effects, effects should be put on a bus, not purely on the stem.
--  For delay, you would put it on a bus, then put an EQ, then apply effects as necessary, however for the EQ, you choose what you want to pass.
-- For chorus, you put it on a bus, you decide whether or not you want to apply EQ, then you apply Chorus, but something important to understand is the Haas method, where you keep the rate very low around .1hz. 
+- Reverb sounds much better when an EQ is applied before. Usually, when reverb is needed, apply EQ, then add Reverb. This is because otherwise, it elongates frequencies that weren't cut off. Usually, a good baseline for EQ before reverb is to put a high pass filter on 500hz to make it sound thin/bright, and put a low pass filter on 8khz to make it sound dark/gloomy. 
+- For delay, you would put an EQ, then apply effects as necessary, however for the EQ, you choose what you want to pass.
+- For chorus, you decide whether or not you want to apply EQ, then you apply Chorus, but something important to understand is the Haas method, where you keep the rate very low around .1hz. 
 - For bass you usually only want to hear it in the middle frequencies. 
 - Compression is often used for drums, especially kicks.
-- People tent to put reverb on snares and high hats
+- People tend to put reverb on snares and high hats
 
 Here are some examples of inputs and what a producer would expect to happen. The format will be {input}: {producer expectations}:
 - Make my vocals sound brighter or have more clarity: have a high shelf boost, and compress highs if necessary
@@ -42,7 +41,7 @@ Here are some examples of inputs and what a producer would expect to happen. The
 - I want the melody to sound warmer: add overdrive (subtle) add EQ boost between 125-250hz
 - I want the melody to sound darker: low pass filter (depends on how dark you want it)
 - I want the melody to sound spacier: Apply reverb/delay/chorus
-- I want  the melody to sound wider: Apply Chorus
+- I want the melody to sound wider: Apply Chorus
 - I want the drums to hit harder/punch: Punchy compression subtle overdrive
 - I want the drums to be controlled better: Gluey compression
 - I want my drums to sound more full: parallel compression
@@ -52,7 +51,7 @@ Here are some examples of inputs and what a producer would expect to happen. The
 - I want my mix to sound more controlled: gluey compression
 - I want my mix to have more life: gluey compression on mix, stereo analyzer (subtle)
 - Make my mix sound wider/bigger/full: stereo analyzer (subtle), add EQ boost between 250-500hz, +3 gain max, wide notch.
-- Make my mix birgher/more clarity: Add EQ boost between 5k-10k hz, +3 gain max, wide notch. 
+- Make my mix brighter/more clarity: Add EQ boost between 5k-10k hz, +3 gain max, wide notch. 
 - I can't hear instrument X in my mix: find what frequencies x occupies, see which stems/tracks occupies the same frequencies (instrument y), put a wide EQ dip on Y where the frequencies clash, put x's volume a little up as well.
 - I can't hear my kick, make it stand out: Dip on the fundamental (50-60hz) on the bass track with a Dynamic EQ. 
 - Make my vocals sit better on the mix: Dip on the 6.3k-10k range on the melody and drum track with a Dynamic EQ, cut it lower on the melody track then the drum. 
@@ -432,10 +431,14 @@ class EffectGeneratorAssistant:
                 )
         
         messages = self.client.beta.threads.messages.list(
-            thread_id=threadId
+            thread_id=threadId,
+            order="asc"
         )
         
         messages = list(map(lambda x: {"role": x.role, "value": x.content[0].text.value}, messages.data))
+        for message in messages:
+            if message["role"] == "user":
+                message["value"] = message["value"].split("Query:")[1]
 
         return messages, run_parameters
         
