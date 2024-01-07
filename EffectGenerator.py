@@ -242,7 +242,6 @@ class EffectGeneratorAssistant:
             thread_id= threadId,
             assistant_id=self.PromptEngineer.id
         )
-        print(run)
 
         run_parameters = {
             "effects": []
@@ -256,7 +255,6 @@ class EffectGeneratorAssistant:
                 thread_id=threadId,
                 run_id=run.id
             )
-            print(run.status)
             if run.status == "requires_action" and run.required_action.type == "submit_tool_outputs":
                 toolCalls = run.required_action.submit_tool_outputs.tool_calls
                 toolOutputs = []
@@ -437,9 +435,6 @@ class EffectGeneratorAssistant:
             thread_id=threadId
         )
         
-        print('====================================')
-        print(messages)
-        print(run_parameters)
         messages = list(map(lambda x: {"role": x.role, "value": x.content[0].text.value}, messages.data))
 
         return messages, run_parameters

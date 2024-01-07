@@ -21,8 +21,11 @@ def get_params():
     
     new_query = f"Current State: {current_state}\n\n Query:{query}"
     
+    print('starting generator')
     messages, run_parameters = gpt.run_generator(new_query, thread_id)
+    print('generator finished')
     response = {'messages': messages, 'run_parameters': run_parameters}
+    print(response)
     return jsonify(response)
 
 @app.route('/delete-conversation', methods=['POST'])
