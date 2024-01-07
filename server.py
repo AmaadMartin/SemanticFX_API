@@ -1,19 +1,40 @@
 from flask import Flask, request, jsonify
-from EffectGenerator import GPT  # Import your GPT class from your script
+from EffectGenerator import EffectGeneratorAssistant  # Import your GPT class from your script
 
 app = Flask(__name__)
-gpt = GPT()
+gpt = EffectGeneratorAssistant()
+
+@app.route('/create-conversation', methods=['POST'])
+def create_conversation():
+    thread_id = gpt.create_conversation()
+    return jsonify(thread_id)
 
 @app.route('/get-params', methods=['POST'])
-def engineer_prompt():
+def get_params():
     data = request.json
-    query = data['query']    
-    gpt.engineerPrompt(query)
-
-    response = gpt.parameters
-    gpt.reset()
-    # parameters = {'effects': [{'type': 'delayLine', 'delay': 50, 'maximumDelayInSamples': 8000}, {'type': 'phaser', 'rate': 0.8, 'depth': 0.6, 'centreFrequency': 440, 'feedback': -0.5, 'mix': 1}, {'type': 'compressor', 'threshold': -18, 'ratio': 4, 'attack': 50, 'release': 200}, {'type': 'peakFilter', 'centreFrequency': 3000, 'gainFactor': 1.5, 'Q': 1.0}, {'type': 'chorus', 'rate': 1, 'depth': 0.3, 'centreDelay': 15, 'feedback': 0.2, 'mix': 0.5}, {'type': 'highShelfFilter', 'cutOffFrequency': 5000, 'gainFactor': 0.75, 'Q': 0.7}]}
+    try:
+        thread_id = data['thread_id']
+        query = data['query']
+        current_state = data['current_state']
+    except: 
+        return jsonify({'error': 'Invalid request'})
+    
+    new_query = f"Current State: {current_state}\n\n Query:{query}"
+    
+    messages, run_parameters = gpt.run_generator(new_query, thread_id)
+    response = {'messages': messages, 'run_parameters': run_parameters}
     return jsonify(response)
+
+@app.route('/delete-conversation', methods=['POST'])
+def delete_conversation():
+    data = request.json
+    try:
+        thread_id = data['thread_id']
+    except: 
+        return jsonify({'error': 'Invalid request'})
+    
+    gpt.delete_thread(thread_id)
+    return jsonify({'success': True})
 
 if __name__ == '__main__':
     app.run()
